@@ -1,6 +1,6 @@
 pub mod hub;
 
-// this was copied from eris-staking's branch of STEAK.
+// this was copied from eris-staking's branch of ITO.
 //
 mod decimal_checked_ops {
     use cosmwasm_std::{Decimal, Decimal256, Fraction, OverflowError, StdError, Uint128, Uint256};
