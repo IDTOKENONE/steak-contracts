@@ -54,7 +54,7 @@ pub(crate) fn query_delegations(
 ///
 /// Parsing the string with regex doesn't work, because the resulting binary would be too big for
 /// including the `regex` library. Example:
-/// https://github.com/PFC-Validator/terra-rust/blob/v1.1.8/terra-rust-api/src/client/core_types.rs#L34-L55
+/// https://github.com/ITO-Validator/terra-rust/blob/v1.1.8/terra-rust-api/src/client/core_types.rs#L34-L55
 ///
 /// We opt for a dirtier solution. Enumerate characters in the string, and break before the first
 /// character that is not a number. Split the string at that index.
