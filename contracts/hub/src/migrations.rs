@@ -2,7 +2,7 @@ use crate::state::{State, BATCH_KEY_V101};
 use crate::types::BooleanKey;
 use cosmwasm_std::{Addr, Order, QuerierWrapper, StdError, StdResult, Storage, Uint128};
 use cw_storage_plus::{Index, IndexList, IndexedMap, MultiIndex};
-use pfc_steak::hub::Batch;
+use ITO_ITO::hub::Batch;
 
 use serde::{Deserialize, Serialize};
 use crate::helpers::get_denom_balance;
@@ -16,7 +16,7 @@ pub struct BatchV100 {
     pub id: u64,
     /// Whether this batch has already been reconciled
     pub reconciled: bool,
-    /// Total amount of shares remaining this batch. Each `usteak` burned = 1 share
+    /// Total amount of shares remaining this batch. Each `uITO` burned = 1 share
     pub total_shares: Uint128,
     /// Amount of `denom` in this batch that have not been claimed
     pub uluna_unclaimed: Uint128,
