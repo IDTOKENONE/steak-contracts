@@ -2,7 +2,7 @@ use std::{cmp, cmp::Ordering};
 
 use cosmwasm_std::Uint128;
 
-use pfc_steak::hub::Batch;
+use ito_ito::hub::Batch;
 
 use crate::types::{Delegation, Redelegation, Undelegation};
 
@@ -10,11 +10,11 @@ use crate::types::{Delegation, Redelegation, Undelegation};
 // Minting/burning logics
 //--------------------------------------------------------------------------------------------------
 
-/// Compute the amount of Steak token to mint for a specific Luna stake amount. If current total
-/// staked amount is zero, we use 1 usteak = 1 native; otherwise, we calculate base on the current
+/// Compute the amount of ito token to mint for a specific Luna stake amount. If current total
+/// staked amount is zero, we use 1 uito = 1 native; otherwise, we calculate base on the current
 /// native per ustake ratio.
 pub(crate) fn compute_mint_amount(
-    usteak_supply: Uint128,
+    uito_supply: Uint128,
     native_to_bond: Uint128,
     current_delegations: &[Delegation],
 ) -> Uint128 {
@@ -22,21 +22,21 @@ pub(crate) fn compute_mint_amount(
     if native_bonded == 0 {
         native_to_bond
     } else {
-        usteak_supply.multiply_ratio(native_to_bond, native_bonded)
+        uito_supply.multiply_ratio(native_to_bond, native_bonded)
     }
 }
 
-/// Compute the amount of `native` to unbond for a specific `usteak` burn amount
+/// Compute the amount of `native` to unbond for a specific `uito` burn amount
 ///
-/// There is no way `usteak` total supply is zero when the user is senting a non-zero amount of `usteak`
+/// There is no way `uito` total supply is zero when the user is senting a non-zero amount of `uito`
 /// to burn, so we don't need to handle division-by-zero here
 pub(crate) fn compute_unbond_amount(
-    usteak_supply: Uint128,
-    usteak_to_burn: Uint128,
+    uito_supply: Uint128,
+    uito_to_burn: Uint128,
     current_delegations: &[Delegation],
 ) -> Uint128 {
     let native_bonded: u128 = current_delegations.iter().map(|d| d.amount).sum();
-    Uint128::new(native_bonded).multiply_ratio(usteak_to_burn, usteak_supply)
+    Uint128::new(native_bonded).multiply_ratio(uito_to_burn, uito_supply)
 }
 
 //--------------------------------------------------------------------------------------------------

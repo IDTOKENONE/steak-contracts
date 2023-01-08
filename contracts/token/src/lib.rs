@@ -71,12 +71,12 @@ mod tests {
             .save(
                 deps.as_mut().storage,
                 &TokenInfo {
-                    name: "ITO Token".to_string(),
+                    name: "ito Token".to_string(),
                     symbol: "STEAK".to_string(),
                     decimals: 6,
                     total_supply: Uint128::new(200),
                     mint: Some(MinterData {
-                        minter: Addr::unchecked("ITO_hub"),
+                        minter: Addr::unchecked("ito_hub"),
                         cap: None,
                     }),
                 },
@@ -86,7 +86,7 @@ mod tests {
         BALANCES
             .save(
                 deps.as_mut().storage,
-                &Addr::unchecked("ITO_hub"),
+                &Addr::unchecked("ito_hub"),
                 &Uint128::new(100)
             )
             .unwrap();
@@ -117,19 +117,19 @@ mod tests {
         );
         assert_eq!(res, Err(StdError::generic_err("only minter can execute token burn").into()));
 
-        // ITO Hub can burn
+        // ito Hub can burn
         let res = execute(
             deps.as_mut(),
             mock_env(),
-            mock_info("ITO_hub", &[]),
+            mock_info("ito_hub", &[]),
             ExecuteMsg::Burn {
                 amount: Uint128::new(100),
             },
         );
         assert!(res.is_ok());
 
-        // ITO Hub's token balance should have been reduced
-        let balance = BALANCES.load(deps.as_ref().storage, &Addr::unchecked("ITO_hub")).unwrap();
+        // ito Hub's token balance should have been reduced
+        let balance = BALANCES.load(deps.as_ref().storage, &Addr::unchecked("ito_hub")).unwrap();
         assert_eq!(balance, Uint128::zero());
 
         // Total supply should have been reduced
@@ -141,11 +141,11 @@ mod tests {
     fn disabling_burn_from() {
         let mut deps = setup_test();
 
-        // Not even ITO Hub can invoke `burn_from`
+        // Not even ito Hub can invoke `burn_from`
         let res = execute(
             deps.as_mut(),
             mock_env(),
-            mock_info("ITO_hub", &[]),
+            mock_info("ito_hub", &[]),
             ExecuteMsg::BurnFrom {
                 owner: "alice".to_string(),
                 amount: Uint128::new(100),
