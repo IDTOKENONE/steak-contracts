@@ -1,7 +1,7 @@
 use cosmwasm_std::{Addr, Decimal, Deps, Env, Order, StdResult, Uint128};
 use cw_storage_plus::{Bound, CwIntKey};
 
-use pfc_steak::hub::{
+use ITO_ITO::hub::{
     Batch, ConfigResponse, PendingBatch, StateResponse, UnbondRequestsByBatchResponseItem,
     UnbondRequestsByUserResponseItem,
 };
@@ -20,7 +20,7 @@ pub fn config(deps: Deps) -> StdResult<ConfigResponse> {
             .new_owner
             .may_load(deps.storage)?
             .map(|addr| addr.into()),
-        steak_token: state.steak_token.load(deps.storage)?.into(),
+        ITO_token: state.ITO_token.load(deps.storage)?.into(),
         epoch_period: state.epoch_period.load(deps.storage)?,
         unbond_period: state.unbond_period.load(deps.storage)?,
         denom: state.denom.load(deps.storage)?,
@@ -36,21 +36,21 @@ pub fn state(deps: Deps, env: Env) -> StdResult<StateResponse> {
     let state = State::default();
 
     let denom = state.denom.load(deps.storage)?;
-    let steak_token = state.steak_token.load(deps.storage)?;
-    let total_usteak = query_cw20_total_supply(&deps.querier, &steak_token)?;
+    let ITO_token = state.ITO_token.load(deps.storage)?;
+    let total_uITO = query_cw20_total_supply(&deps.querier, &ITO_token)?;
 
     let validators = state.validators.load(deps.storage)?;
     let delegations = query_delegations(&deps.querier, &validators, &env.contract.address, &denom)?;
     let total_native: u128 = delegations.iter().map(|d| d.amount).sum();
 
-    let exchange_rate = if total_usteak.is_zero() {
+    let exchange_rate = if total_uITO.is_zero() {
         Decimal::one()
     } else {
-        Decimal::from_ratio(total_native, total_usteak)
+        Decimal::from_ratio(total_native, total_uITO)
     };
 
     Ok(StateResponse {
-        total_usteak,
+        total_uITO,
         total_native: Uint128::new(total_native),
         exchange_rate,
         unlocked_coins: state.unlocked_coins.load(deps.storage)?,
