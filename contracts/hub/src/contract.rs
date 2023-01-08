@@ -4,7 +4,7 @@ use cosmwasm_std::{
 };
 use cw20::Cw20ReceiveMsg;
 
-use ito_ito::hub::{CallbackMsg, ExecuteMsg, FeeType, InstantiateMsg, MigrateMsg, QueryMsg, ReceiveMsg};
+use pfc_steak::hub::{CallbackMsg, ExecuteMsg, FeeType, InstantiateMsg, MigrateMsg, QueryMsg, ReceiveMsg};
 
 use crate::helpers::{get_denom_balance, unwrap_reply};
 use crate::migrations::ConfigV100;
@@ -13,7 +13,7 @@ use crate::{execute, queries};
 use cw2::{get_contract_version, set_contract_version, ContractVersion};
 
 /// Contract name that is used for migration.
-pub const CONTRACT_NAME: &str = "ito-hub";
+pub const CONTRACT_NAME: &str = "steak-hub";
 /// Contract version that is used for migration.
 pub const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 pub const REPLY_INSTANTIATE_TOKEN: u64 = 1;
@@ -101,10 +101,10 @@ fn receive(
         ReceiveMsg::QueueUnbond { receiver } => {
             let state = State::default();
 
-            let ito_token = state.ito_token.load(deps.storage)?;
-            if info.sender != ito_token {
+            let steak_token = state.steak_token.load(deps.storage)?;
+            if info.sender != steak_token {
                 return Err(StdError::generic_err(format!(
-                    "expecting ito token, received {}",
+                    "expecting Steak token, received {}",
                     info.sender
                 )));
             }
@@ -139,7 +139,7 @@ fn callback(
 #[entry_point]
 pub fn reply(deps: DepsMut, env: Env, reply: Reply) -> StdResult<Response> {
     match reply.id {
-        1 => execute::register_ito_token(deps, unwrap_reply(reply)?),
+        1 => execute::register_steak_token(deps, unwrap_reply(reply)?),
         REPLY_REGISTER_RECEIVED_COINS => {
             execute::register_received_coins(deps, env, unwrap_reply(reply)?.events)
         }
@@ -188,13 +188,13 @@ pub fn migrate(deps: DepsMut, env: Env, _msg: MigrateMsg) -> StdResult<Response>
     let contract_version = match get_contract_version(deps.storage) {
         Ok(version) => version,
         Err(_) => ContractVersion {
-            contract: "ito-hub".to_string(),
+            contract: "steak-hub".to_string(),
             version: "0".to_string(),
         },
     };
     match contract_version.contract.as_ref() {
         #[allow(clippy::single_match)]
-        "ito-hub" => match contract_version.version.as_ref() {
+        "steak-hub" => match contract_version.version.as_ref() {
             #[allow(clippy::single_match)]
             "0" => {
                 let state = State::default();
