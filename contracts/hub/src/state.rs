@@ -1,7 +1,7 @@
 use cosmwasm_std::{Addr, Coin, Decimal, StdError, StdResult, Storage, Uint128};
 use cw_storage_plus::{Index, IndexList, IndexedMap, Item, MultiIndex};
 
-use pfc_steak::hub::{Batch, FeeType, PendingBatch, UnbondRequest};
+use ITO_ITO::hub::{Batch, FeeType, PendingBatch, UnbondRequest};
 
 use crate::types::BooleanKey;
 pub(crate) const BATCH_KEY_V101: &str = "previous_batches_101";
@@ -21,8 +21,8 @@ pub(crate) struct State<'a> {
     pub max_fee_rate: Item<'a, Decimal>,
     /// denom to accept
     pub denom: Item<'a, String>,
-    /// Address of the Steak token
-    pub steak_token: Item<'a, Addr>,
+    /// Address of the ITO token
+    pub ITO_token: Item<'a, Addr>,
     /// How often the unbonding queue is to be executed
     pub epoch_period: Item<'a, u64>,
     /// The staking module's unbonding time, in seconds
@@ -67,7 +67,7 @@ impl Default for State<'static> {
             fee_rate: Item::new("fee_rate"),
             max_fee_rate: Item::new("max_fee_rate"),
             denom: Item::new("denom"),
-            steak_token: Item::new("steak_token"),
+            ITO_token: Item::new("ITO_token"),
             epoch_period: Item::new("epoch_period"),
             unbond_period: Item::new("unbond_period"),
             validators: Item::new("validators"),
