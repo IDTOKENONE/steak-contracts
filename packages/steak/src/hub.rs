@@ -23,7 +23,7 @@ pub struct InstantiateMsg {
     pub unbond_period: u64,
     /// Initial set of validators who will receive the delegations
     pub validators: Vec<String>,
-    /// denomination of coins to steak (uXXXX)
+    /// denomination of coins to ITO (uXXXX)
     pub denom: String,
     /// type of fee account
     pub fee_account_type: String,
@@ -151,13 +151,13 @@ pub struct ConfigResponse {
     pub owner: String,
     /// Pending ownership transfer, awaiting acceptance by the new owner
     pub new_owner: Option<String>,
-    /// Address of the Steak token
-    pub steak_token: String,
+    /// Address of the ITO token
+    pub ITO_token: String,
     /// How often the unbonding queue is to be executed, in seconds
     pub epoch_period: u64,
     /// The staking module's unbonding time, in seconds
     pub unbond_period: u64,
-    /// denomination of coins to steak (uXXXX)
+    /// denomination of coins to ITO (uXXXX)
     pub denom: String,
     /// type of account to send the fees too
     pub fee_type:String,
@@ -173,11 +173,11 @@ pub struct ConfigResponse {
 
 #[derive(Serialize, Deserialize, Clone, Debug,Eq, PartialEq, JsonSchema)]
 pub struct StateResponse {
-    /// Total supply to the Steak token
-    pub total_usteak: Uint128,
+    /// Total supply to the ITO token
+    pub total_uITO: Uint128,
     /// Total amount of native staked
     pub total_native: Uint128,
-    /// The exchange rate between usteak and native, in terms of native per usteak
+    /// The exchange rate between uITO and native, in terms of native per uITO
     pub exchange_rate: Decimal,
     /// Staking rewards currently held by the contract that are ready to be reinvested
     pub unlocked_coins: Vec<Coin>,
@@ -187,8 +187,8 @@ pub struct StateResponse {
 pub struct PendingBatch {
     /// ID of this batch
     pub id: u64,
-    /// Total amount of `usteak` to be burned in this batch
-    pub usteak_to_burn: Uint128,
+    /// Total amount of `uITO` to be burned in this batch
+    pub uITO_to_burn: Uint128,
     /// Estimated time when this batch will be submitted for unbonding
     pub est_unbond_start_time: u64,
 }
@@ -199,7 +199,7 @@ pub struct Batch {
     pub id: u64,
     /// Whether this batch has already been reconciled
     pub reconciled: bool,
-    /// Total amount of shares remaining this batch. Each `usteak` burned = 1 share
+    /// Total amount of shares remaining this batch. Each `uITO` burned = 1 share
     pub total_shares: Uint128,
     /// Amount of `denom` in this batch that have not been claimed
     pub amount_unclaimed: Uint128,
