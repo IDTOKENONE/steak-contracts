@@ -7,8 +7,8 @@ use cosmwasm_std::{
 use cw20::{Cw20ExecuteMsg, MinterResponse};
 use cw20_base::msg::InstantiateMsg as Cw20InstantiateMsg;
 
-use ITO_ITO::DecimalCheckedOps;
-use ITO_ITO::hub::{
+use ito_ito::DecimalCheckedOps;
+use ito_ito::hub::{
     Batch, CallbackMsg, ExecuteMsg, FeeType, InstantiateMsg, PendingBatch, UnbondRequest,
 };
 
@@ -62,7 +62,7 @@ pub fn instantiate(deps: DepsMut, env: Env, msg: InstantiateMsg) -> StdResult<Re
         deps.storage,
         &PendingBatch {
             id: 1,
-            uITO_to_burn: Uint128::zero(),
+            uito_to_burn: Uint128::zero(),
             est_unbond_start_time: env.block.time.seconds() + msg.epoch_period,
         },
     )?;
@@ -86,13 +86,13 @@ pub fn instantiate(deps: DepsMut, env: Env, msg: InstantiateMsg) -> StdResult<Re
                 marketing: msg.marketing,
             })?,
             funds: vec![],
-            label: msg.label.unwrap_or_else(|| "ITO_token".to_string()),
+            label: msg.label.unwrap_or_else(|| "ito_token".to_string()),
         }),
         REPLY_INSTANTIATE_TOKEN,
     )))
 }
 
-pub fn register_ITO_token(deps: DepsMut, response: SubMsgResponse) -> StdResult<Response> {
+pub fn register_ito_token(deps: DepsMut, response: SubMsgResponse) -> StdResult<Response> {
     let state = State::default();
 
     let event = response
@@ -109,7 +109,7 @@ pub fn register_ITO_token(deps: DepsMut, response: SubMsgResponse) -> StdResult<
         .value;
 
     let contract_addr = deps.api.addr_validate(contract_addr_str)?;
-    state.ITO_token.save(deps.storage, &contract_addr)?;
+    state.ito_token.save(deps.storage, &contract_addr)?;
 
     Ok(Response::new())
 }
@@ -130,7 +130,7 @@ pub fn bond(deps: DepsMut, env: Env, receiver: Addr, funds: Vec<Coin>) -> StdRes
     let state = State::default();
     let denom = state.denom.load(deps.storage)?;
     let amount_to_bond = parse_received_fund(&funds, &denom)?;
-    let ITO_token = state.ITO_token.load(deps.storage)?;
+    let ito_token = state.ito_token.load(deps.storage)?;
     let validators = state.validators_active.load(deps.storage)?;
 
     // Query the current delegations made to validators, and find the validator with the smallest
@@ -151,9 +151,9 @@ pub fn bond(deps: DepsMut, env: Env, receiver: Addr, funds: Vec<Coin>) -> StdRes
         denom: denom.clone(),
     };
 
-    // Query the current supply of ITO and compute the amount to mint
-    let uITO_supply = query_cw20_total_supply(&deps.querier, &ITO_token)?;
-    let uITO_to_mint = compute_mint_amount(uITO_supply, amount_to_bond, &delegations);
+    // Query the current supply of ito and compute the amount to mint
+    let uito_supply = query_cw20_total_supply(&deps.querier, &ito_token)?;
+    let uito_to_mint = compute_mint_amount(uito_supply, amount_to_bond, &delegations);
     state.prev_denom.save(
         deps.storage,
         &get_denom_balance(&deps.querier, env.contract.address.clone(), denom.clone())?,
@@ -166,10 +166,10 @@ pub fn bond(deps: DepsMut, env: Env, receiver: Addr, funds: Vec<Coin>) -> StdRes
 
 
     let mint_msg: CosmosMsg = CosmosMsg::Wasm(WasmMsg::Execute {
-        contract_addr: ITO_token.to_string(),
+        contract_addr: ito_token.to_string(),
         msg: to_binary(&Cw20ExecuteMsg::Mint {
             recipient: env.contract.address.to_string(),//receiver.to_string(),
-            amount: uITO_to_mint,
+            amount: uito_to_mint,
         })?,
         funds: vec![],
     });
@@ -179,10 +179,10 @@ pub fn bond(deps: DepsMut, env: Env, receiver: Addr, funds: Vec<Coin>) -> StdRes
     let send_transfer_msg: CosmosMsg = match contract_info {
         Ok(_) => {
             CosmosMsg::Wasm(WasmMsg::Execute {
-                contract_addr: ITO_token.to_string(),
+                contract_addr: ito_token.to_string(),
                 msg: to_binary(&Cw20ExecuteMsg::Send {
                     contract: receiver.to_string(),
-                    amount: uITO_to_mint,
+                    amount: uito_to_mint,
                     msg: Default::default(),
                 })?,
                 funds: vec![],
@@ -190,10 +190,10 @@ pub fn bond(deps: DepsMut, env: Env, receiver: Addr, funds: Vec<Coin>) -> StdRes
         }
         Err(_) => {
             CosmosMsg::Wasm(WasmMsg::Execute {
-                contract_addr: ITO_token.to_string(),
+                contract_addr: ito_token.to_string(),
                 msg: to_binary(&Cw20ExecuteMsg::Transfer {
                     recipient: receiver.to_string(),
-                    amount: uITO_to_mint,
+                    amount: uito_to_mint,
                     //  msg: Default::default(),
                 })?,
                 funds: vec![],
@@ -201,20 +201,20 @@ pub fn bond(deps: DepsMut, env: Env, receiver: Addr, funds: Vec<Coin>) -> StdRes
         }
     };
 
-    let event = Event::new("ITOhub/bonded")
+    let event = Event::new("itohub/bonded")
         .add_attribute("time", env.block.time.seconds().to_string())
         .add_attribute("height", env.block.height.to_string())
-        .add_attribute("ITO_receiver", receiver)
+        .add_attribute("ito_receiver", receiver)
         .add_attribute("denom_bonded", denom)
         .add_attribute("denom_amount", amount_to_bond)
-        .add_attribute("uITO_minted", uITO_to_mint);
+        .add_attribute("uito_minted", uito_to_mint);
 
     Ok(Response::new()
         .add_submessage(delegate_submsg)
         .add_messages(vec![mint_msg, send_transfer_msg])
         //   .add_message(send_msg)
         .add_event(event)
-        .add_attribute("action", "ITOhub/bond"))
+        .add_attribute("action", "itohub/bond"))
 }
 
 pub fn harvest(deps: DepsMut, env: Env) -> StdResult<Response> {
@@ -244,7 +244,7 @@ pub fn harvest(deps: DepsMut, env: Env) -> StdResult<Response> {
     Ok(Response::new()
         .add_submessages(withdraw_submsgs)
         .add_message(callback_msg)
-        .add_attribute("action", "ITOhub/harvest"))
+        .add_attribute("action", "itohub/harvest"))
 }
 
 /// NOTE:
@@ -301,7 +301,7 @@ pub fn reinvest(deps: DepsMut, env: Env) -> StdResult<Response> {
     unlocked_coins.retain(|coin| coin.denom != denom);
     state.unlocked_coins.save(deps.storage, &unlocked_coins)?;
 
-    let event = Event::new("ITOhub/harvested")
+    let event = Event::new("itohub/harvested")
         .add_attribute("time", env.block.time.seconds().to_string())
         .add_attribute("height", env.block.height.to_string())
         .add_attribute("denom", &denom)
@@ -319,7 +319,7 @@ pub fn reinvest(deps: DepsMut, env: Env) -> StdResult<Response> {
                     amount: vec![Coin::new(fee_amount.into(), &denom)],
                 })],
             FeeType::FeeSplit => {
-                let msg = ITO_fee_split::fee_split_msg::ExecuteMsg::Deposit { flush: false };
+                let msg = ito_fee_split::fee_split_msg::ExecuteMsg::Deposit { flush: false };
 
                 vec![msg.into_cosmos_msg(fee_account, vec![Coin::new(fee_amount.into(), &denom)])?]
             }
@@ -328,12 +328,12 @@ pub fn reinvest(deps: DepsMut, env: Env) -> StdResult<Response> {
             .add_message(new_delegation.to_cosmos_msg())
             .add_messages(send_msgs)
             .add_event(event)
-            .add_attribute("action", "ITOhub/reinvest"))
+            .add_attribute("action", "itohub/reinvest"))
     } else {
         Ok(Response::new()
             .add_message(new_delegation.to_cosmos_msg())
             .add_event(event)
-            .add_attribute("action", "ITOhub/reinvest"))
+            .add_attribute("action", "itohub/reinvest"))
     }
 }
 
@@ -362,7 +362,7 @@ pub fn register_received_coins(
             Ok(coins.0)
         })?;
 
-    Ok(Response::new().add_attribute("action", "ITOhub/register_received_coins"))
+    Ok(Response::new().add_attribute("action", "itohub/register_received_coins"))
 }
 
 fn parse_coin_receiving_event(env: &Env, event: &Event) -> StdResult<Coins> {
@@ -397,12 +397,12 @@ pub fn queue_unbond(
     deps: DepsMut,
     env: Env,
     receiver: Addr,
-    uITO_to_burn: Uint128,
+    uito_to_burn: Uint128,
 ) -> StdResult<Response> {
     let state = State::default();
 
     let mut pending_batch = state.pending_batch.load(deps.storage)?;
-    pending_batch.uITO_to_burn += uITO_to_burn;
+    pending_batch.uito_to_burn += uito_to_burn;
     state.pending_batch.save(deps.storage, &pending_batch)?;
 
     state.unbond_requests.update(
@@ -414,7 +414,7 @@ pub fn queue_unbond(
                 user: receiver.clone(),
                 shares: Uint128::zero(),
             });
-            request.shares += uITO_to_burn;
+            request.shares += uito_to_burn;
             Ok(request)
         },
     )?;
@@ -428,23 +428,23 @@ pub fn queue_unbond(
         }));
     }
 
-    let event = Event::new("ITOhub/unbond_queued")
+    let event = Event::new("itohub/unbond_queued")
         .add_attribute("time", env.block.time.seconds().to_string())
         .add_attribute("height", env.block.height.to_string())
         .add_attribute("id", pending_batch.id.to_string())
         .add_attribute("receiver", receiver)
-        .add_attribute("uITO_to_burn", uITO_to_burn);
+        .add_attribute("uito_to_burn", uito_to_burn);
 
     Ok(Response::new()
         .add_messages(msgs)
         .add_event(event)
-        .add_attribute("action", "ITOhub/queue_unbond"))
+        .add_attribute("action", "itohub/queue_unbond"))
 }
 
 pub fn submit_batch(deps: DepsMut, env: Env) -> StdResult<Response> {
     let state = State::default();
     let denom = state.denom.load(deps.storage)?;
-    let ITO_token = state.ITO_token.load(deps.storage)?;
+    let ito_token = state.ito_token.load(deps.storage)?;
     let validators = state.validators.load(deps.storage)?;
     let unbond_period = state.unbond_period.load(deps.storage)?;
     let pending_batch = state.pending_batch.load(deps.storage)?;
@@ -458,10 +458,10 @@ pub fn submit_batch(deps: DepsMut, env: Env) -> StdResult<Response> {
     }
 
     let delegations = query_delegations(&deps.querier, &validators, &env.contract.address, &denom)?;
-    let uITO_supply = query_cw20_total_supply(&deps.querier, &ITO_token)?;
+    let uito_supply = query_cw20_total_supply(&deps.querier, &ito_token)?;
 
     let amount_to_bond =
-        compute_unbond_amount(uITO_supply, pending_batch.uITO_to_burn, &delegations);
+        compute_unbond_amount(uito_supply, pending_batch.uito_to_burn, &delegations);
     let new_undelegations = compute_undelegations(amount_to_bond, &delegations, &denom);
 
     // NOTE: Regarding the `amount_unclaimed` value
@@ -479,7 +479,7 @@ pub fn submit_batch(deps: DepsMut, env: Env) -> StdResult<Response> {
         &Batch {
             id: pending_batch.id,
             reconciled: false,
-            total_shares: pending_batch.uITO_to_burn,
+            total_shares: pending_batch.uito_to_burn,
             amount_unclaimed: amount_to_bond,
             est_unbond_end_time: current_time + unbond_period,
         },
@@ -490,7 +490,7 @@ pub fn submit_batch(deps: DepsMut, env: Env) -> StdResult<Response> {
         deps.storage,
         &PendingBatch {
             id: pending_batch.id + 1,
-            uITO_to_burn: Uint128::zero(),
+            uito_to_burn: Uint128::zero(),
             est_unbond_start_time: current_time + epoch_period,
         },
     )?;
@@ -505,25 +505,25 @@ pub fn submit_batch(deps: DepsMut, env: Env) -> StdResult<Response> {
         .collect::<Vec<_>>();
 
     let burn_msg = CosmosMsg::Wasm(WasmMsg::Execute {
-        contract_addr: ITO_token.into(),
+        contract_addr: ito_token.into(),
         msg: to_binary(&Cw20ExecuteMsg::Burn {
-            amount: pending_batch.uITO_to_burn,
+            amount: pending_batch.uito_to_burn,
         })?,
         funds: vec![],
     });
 
-    let event = Event::new("ITOhub/unbond_submitted")
+    let event = Event::new("itohub/unbond_submitted")
         .add_attribute("time", env.block.time.seconds().to_string())
         .add_attribute("height", env.block.height.to_string())
         .add_attribute("id", pending_batch.id.to_string())
         .add_attribute("native_unbonded", amount_to_bond)
-        .add_attribute("uITO_burned", pending_batch.uITO_to_burn);
+        .add_attribute("uito_burned", pending_batch.uito_to_burn);
 
     Ok(Response::new()
         .add_submessages(undelegate_submsgs)
         .add_message(burn_msg)
         .add_event(event)
-        .add_attribute("action", "ITOhub/unbond"))
+        .add_attribute("action", "itohub/unbond"))
 }
 
 pub fn reconcile(deps: DepsMut, env: Env) -> StdResult<Response> {
@@ -578,13 +578,13 @@ pub fn reconcile(deps: DepsMut, env: Env) -> StdResult<Response> {
         .collect::<Vec<_>>()
         .join(",");
 
-    let event = Event::new("ITOhub/reconciled")
+    let event = Event::new("itohub/reconciled")
         .add_attribute("ids", ids)
         .add_attribute("native_deducted", native_to_deduct.to_string());
 
     Ok(Response::new()
         .add_event(event)
-        .add_attribute("action", "ITOhub/reconcile"))
+        .add_attribute("action", "itohub/reconcile"))
 }
 
 pub fn withdraw_unbonded_admin(
@@ -670,7 +670,7 @@ pub fn withdraw_unbonded(
         amount: vec![Coin::new(total_native_to_refund.u128(), &denom)],
     });
 
-    let event = Event::new("ITOhub/unbonded_withdrawn")
+    let event = Event::new("itohub/unbonded_withdrawn")
         .add_attribute("time", env.block.time.seconds().to_string())
         .add_attribute("height", env.block.height.to_string())
         .add_attribute("ids", ids.join(","))
@@ -681,7 +681,7 @@ pub fn withdraw_unbonded(
     Ok(Response::new()
         .add_message(refund_msg)
         .add_event(event)
-        .add_attribute("action", "ITOhub/withdraw_unbonded"))
+        .add_attribute("action", "itohub/withdraw_unbonded"))
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -711,12 +711,12 @@ pub fn rebalance(deps: DepsMut, env: Env, minimum: Uint128) -> StdResult<Respons
 
     let amount: u128 = new_redelegations.iter().map(|rd| rd.amount).sum();
 
-    let event = Event::new("ITOhub/rebalanced").add_attribute("amount_moved", amount.to_string());
+    let event = Event::new("itohub/rebalanced").add_attribute("amount_moved", amount.to_string());
 
     Ok(Response::new()
         .add_submessages(redelegate_submsgs)
         .add_event(event)
-        .add_attribute("action", "ITOhub/rebalance"))
+        .add_attribute("action", "itohub/rebalance"))
 }
 
 pub fn add_validator(deps: DepsMut, sender: Addr, validator: String) -> StdResult<Response> {
@@ -739,11 +739,11 @@ pub fn add_validator(deps: DepsMut, sender: Addr, validator: String) -> StdResul
     state
         .validators_active
         .save(deps.storage, &validators_active)?;
-    let event = Event::new("ITOhub/validator_added").add_attribute("validator", validator);
+    let event = Event::new("itohub/validator_added").add_attribute("validator", validator);
 
     Ok(Response::new()
         .add_event(event)
-        .add_attribute("action", "ITOhub/add_validator"))
+        .add_attribute("action", "itohub/add_validator"))
 }
 
 pub fn remove_validator(
@@ -790,12 +790,12 @@ pub fn remove_validator(
         .map(|d| SubMsg::reply_on_success(d.to_cosmos_msg(), REPLY_REGISTER_RECEIVED_COINS))
         .collect::<Vec<_>>();
 
-    let event = Event::new("ITO/validator_removed").add_attribute("validator", validator);
+    let event = Event::new("ito/validator_removed").add_attribute("validator", validator);
 
     Ok(Response::new()
         .add_submessages(redelegate_submsgs)
         .add_event(event)
-        .add_attribute("action", "ITOhub/remove_validator"))
+        .add_attribute("action", "itohub/remove_validator"))
 }
 
 pub fn remove_validator_ex(
@@ -818,11 +818,11 @@ pub fn remove_validator_ex(
         Ok(validators)
     })?;
 
-    let event = Event::new("ITO/validator_removed_ex").add_attribute("validator", validator);
+    let event = Event::new("ito/validator_removed_ex").add_attribute("validator", validator);
 
     Ok(Response::new()
         .add_event(event)
-        .add_attribute("action", "ITOhub/remove_validator_ex"))
+        .add_attribute("action", "itohub/remove_validator_ex"))
 }
 
 pub fn pause_validator(
@@ -847,11 +847,11 @@ pub fn pause_validator(
             Ok(validators)
         })?;
 
-    let event = Event::new("ITO/pause_validator").add_attribute("validator", validator);
+    let event = Event::new("ito/pause_validator").add_attribute("validator", validator);
 
     Ok(Response::new()
         .add_event(event)
-        .add_attribute("action", "ITOhub/pause_validator"))
+        .add_attribute("action", "itohub/pause_validator"))
 }
 
 pub fn unpause_validator(
@@ -871,11 +871,11 @@ pub fn unpause_validator(
         .validators_active
         .save(deps.storage, &validators_active)?;
 
-    let event = Event::new("ITO/unpause_validator").add_attribute("validator", validator);
+    let event = Event::new("ito/unpause_validator").add_attribute("validator", validator);
 
     Ok(Response::new()
         .add_event(event)
-        .add_attribute("action", "ITOhub/unpause_validator"))
+        .add_attribute("action", "itohub/unpause_validator"))
 }
 
 pub fn set_unbond_period(
@@ -888,12 +888,12 @@ pub fn set_unbond_period(
 
     state.assert_owner(deps.storage, &sender)?;
     state.unbond_period.save(deps.storage, &unbond_period)?;
-    let event = Event::new("ITO/set_unbond_period")
+    let event = Event::new("ito/set_unbond_period")
         .add_attribute("unbond_period", format!("{}", unbond_period));
 
     Ok(Response::new()
         .add_event(event)
-        .add_attribute("action", "ITOhub/set_unbond_period"))
+        .add_attribute("action", "itohub/set_unbond_period"))
 }
 
 pub fn transfer_ownership(deps: DepsMut, sender: Addr, new_owner: String) -> StdResult<Response> {
@@ -904,7 +904,7 @@ pub fn transfer_ownership(deps: DepsMut, sender: Addr, new_owner: String) -> Std
         .new_owner
         .save(deps.storage, &deps.api.addr_validate(&new_owner)?)?;
 
-    Ok(Response::new().add_attribute("action", "ITOhub/transfer_ownership"))
+    Ok(Response::new().add_attribute("action", "itohub/transfer_ownership"))
 }
 
 pub fn accept_ownership(deps: DepsMut, sender: Addr) -> StdResult<Response> {
@@ -922,13 +922,13 @@ pub fn accept_ownership(deps: DepsMut, sender: Addr) -> StdResult<Response> {
     state.owner.save(deps.storage, &sender)?;
     state.new_owner.remove(deps.storage);
 
-    let event = Event::new("ITOhub/ownership_transferred")
+    let event = Event::new("itohub/ownership_transferred")
         .add_attribute("new_owner", new_owner)
         .add_attribute("previous_owner", previous_owner);
 
     Ok(Response::new()
         .add_event(event)
-        .add_attribute("action", "ITOhub/transfer_ownership"))
+        .add_attribute("action", "itohub/transfer_ownership"))
 }
 
 pub fn transfer_fee_account(
@@ -949,7 +949,7 @@ pub fn transfer_fee_account(
         .fee_account
         .save(deps.storage, &deps.api.addr_validate(&new_fee_account)?)?;
 
-    Ok(Response::new().add_attribute("action", "ITOhub/transfer_fee_account"))
+    Ok(Response::new().add_attribute("action", "itohub/transfer_fee_account"))
 }
 
 pub fn change_denom(deps: DepsMut, sender: Addr, new_denom: String) -> StdResult<Response> {
@@ -958,7 +958,7 @@ pub fn change_denom(deps: DepsMut, sender: Addr, new_denom: String) -> StdResult
     state.assert_owner(deps.storage, &sender)?;
     state.denom.save(deps.storage, &new_denom)?;
 
-    Ok(Response::new().add_attribute("action", "ITOhub/change_denom"))
+    Ok(Response::new().add_attribute("action", "itohub/change_denom"))
 }
 
 pub fn update_fee(deps: DepsMut, sender: Addr, new_fee: Decimal) -> StdResult<Response> {
@@ -972,5 +972,5 @@ pub fn update_fee(deps: DepsMut, sender: Addr, new_fee: Decimal) -> StdResult<Re
     }
     state.fee_rate.save(deps.storage, &new_fee)?;
 
-    Ok(Response::new().add_attribute("action", "ITOhub/update_fee"))
+    Ok(Response::new().add_attribute("action", "itohub/update_fee"))
 }
